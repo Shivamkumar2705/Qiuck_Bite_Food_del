@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import './Navbar.css';
 import { assets } from '../../assets/assets';
 import { Link, useNavigate } from 'react-router-dom';
@@ -8,6 +8,25 @@ const Navbar = () => {
   const { getTotalCartAmount, token, setToken } = useContext(StoreContext);
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
+
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false)
+      }
+    };
+    const onEsc = (e) => e.key === 'Escape' && setProfileOpen(false);
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, []);
+
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -64,7 +83,7 @@ const Navbar = () => {
                 </Link>
                 <div className={getTotalCartAmount()===0 ? '' : 'dot'} />
               </div>
-              <div className='navbar-profile'>
+              <div className={`navbar-profile ${profileOpen ? 'open' : ''}`} ref={profileRef} onClick={() => setProfileOpen(o => !o)} role='button' aria-haspopup='menu' aria-expanded={profileOpen}>
                 <img src={assets.profile_icon} alt="profile" />
                 <ul className='nav-profile-dropdown'>
                   <li onClick={()=>navigate('/myorders')}>

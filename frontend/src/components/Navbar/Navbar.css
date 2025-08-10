@@ -81,8 +81,8 @@
 .navbar-search-icon img { height: 26px; display: block; }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: #ff4343; position: absolute; top: -2px; right: -6px; }
 
-.navbar-profile { position: relative; }
-.navbar-profile > img { height: 30px; display: block; cursor: pointer; }
+.navbar-profile { position: relative; cursor: pointer; }
+.navbar-profile > img { height: 30px; display: block; }
 
 .nav-profile-dropdown {
   position: absolute; right: 0; top: 42px;
@@ -90,19 +90,89 @@
   padding: 8px; display: none; min-width: 170px;
   box-shadow: 0 10px 30px rgba(0,0,0,.08);
 }
-.navbar-profile:hover .nav-profile-dropdown { display: block; }
+
+/* CLICK-to-toggle (remove hover open) */
+.navbar-profile:hover .nav-profile-dropdown { display: none; }   /* disable hover open */
+.navbar-profile.open .nav-profile-dropdown { display: block; }   /* shown when JS adds .open */
+
+/* Dropdown items */
 .nav-profile-dropdown li { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 8px; cursor: pointer; }
 .nav-profile-dropdown li:hover { background: #fafafa; }
 .nav-profile-dropdown img { height: 18px; }
 
-/* Responsive */
+/* Responsive base */
 @media (max-width: 1024px) {
   .nav-search { width: 280px; }
+}
+@media (max-width: 900px) {
+  .navbar { padding: 10px 16px; }
+  .navbar-inner { column-gap: 16px; }
+  .nav-search { width: 260px; max-width: 44vw; }
 }
 @media (max-width: 880px) {
   .navbar-menu { display: none; }      /* simplify on smaller screens */
   .nav-search { width: 240px; max-width: 50vw; }
 }
+/* We used to hide search at 600px, but we now keep it visible for the one-line layout.
+   If you still want to hide it on tiny screens, move this block ABOVE the 760px block below,
+   or remove it entirely. Commented out for clarity.
 @media (max-width: 600px) {
-  .nav-search { display: none; }       /* hide search on very small screens for space */
+  .nav-search { display: none; }
+}
+*/
+
+/* === Prevent overflow from grid children on mobile === */
+.navbar-inner > .group { min-width: 0; }
+
+/* === MOBILE: one-line layout: logo | search | login/signup === */
+@media (max-width: 760px) {
+  .navbar { padding: 8px 10px; }
+
+  .navbar-inner {
+    display: grid;
+    grid-template-columns: auto 1fr auto; /* logo | search | actions */
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 8px;
+  }
+
+  /* prevent overflow from grid children */
+  .navbar-inner > .group { min-width: 0; }
+  .nav-search, .nav-search input { min-width: 0; }
+
+  /* place items */
+  .brand { grid-column: 1 / 2; }
+  .nav-search {
+    grid-column: 2 / 3;
+    width: auto;
+    max-width: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-search input { font-size: 14px; }
+  .search-btn { padding: 8px 10px; }
+
+  .navbar-right {
+    grid-column: 3 / 4;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .auth-buttons { display: flex; gap: 6px; }
+  .btn-outline, .btn-solid { padding: 6px 8px; font-size: 13px; }
+
+  /* Smaller logo on mobile to prevent overlap */
+  .logo { height: 24px !important; width: auto; }
+}
+
+/* Extra-small phones */
+@media (max-width: 420px) {
+  .logo { height: 20px !important; }
+  .btn-outline, .btn-solid { padding: 6px 6px; font-size: 12px; }
+}
+@media (max-width: 360px) {
+  .logo { height: 18px !important; }
 }
