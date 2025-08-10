@@ -1,10 +1,16 @@
 import mongoose from "mongoose";
 
-export const  connectDB = async () =>{
-
-    await mongoose.connect('mongodb+srv://shivamkumar27052003:4AGGTRQ3z5O9CL0t@cluster0.iqzpt.mongodb.net/QuickbiteDatabase').then(()=>console.log("DB Connected"));
+export const connectDB = async () => {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error("MONGODB_URI missing in .env");
+    process.exit(1);
+  }
+  try {
+    await mongoose.connect(uri, { });
+    console.log("DB Connected");
+  } catch (err) {
+    console.error("DB connection error:", err.message);
+    process.exit(1);
+  }
 }
-
-
-// add your mongoDB connection string above.
-// Do not use '@' symbol in your databse user's password else it will show an error.

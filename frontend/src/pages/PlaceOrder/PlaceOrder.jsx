@@ -5,6 +5,7 @@ import { assets } from '../../assets/assets';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { url } from '../../assets/assets';
 
 const PlaceOrder = () => {
 
@@ -21,59 +22,88 @@ const PlaceOrder = () => {
         phone: ""
     })
 
-    const { getTotalCartAmount, token, food_list, cartItems, url, setCartItems,currency,deliveryCharge } = useContext(StoreContext);
-
+    const { getTotalCartAmount, token, food_list, cartItems, currency, deliveryCharge } = useContext(StoreContext);
     const navigate = useNavigate();
 
     const onChangeHandler = (event) => {
-        const name = event.target.name
-        const value = event.target.value
+        const name = event.target.name;
+        const value = event.target.value;
         setData(data => ({ ...data, [name]: value }))
     }
 
     const placeOrder = async (e) => {
-        e.preventDefault()
+        e.preventDefault();
+
         let orderItems = [];
-        food_list.map(((item) => {
+        food_list.map((item) => {
             if (cartItems[item._id] > 0) {
                 let itemInfo = item;
                 itemInfo["quantity"] = cartItems[item._id];
-                orderItems.push(itemInfo)
+                orderItems.push(itemInfo);
             }
-        }))
+        })
+
         let orderData = {
-            address: data,
             items: orderItems,
-            amount: getTotalCartAmount() + deliveryCharge,
-        }
-        if (payment === "stripe") {
-            let response = await axios.post(url + "/api/order/place", orderData, { headers: { token } });
-            if (response.data.success) {
-                const { session_url } = response.data;
-                window.location.replace(session_url);
-            }
-            else {
-                toast.error("Something Went Wrong")
-            }
-        }
-        else{
-            let response = await axios.post(url + "/api/order/placecod", orderData, { headers: { token } });
-            if (response.data.success) {
-                navigate("/myorders")
-                toast.success(response.data.message)
-                setCartItems({});
-            }
-            else {
-                toast.error("Something Went Wrong")
-            }
+            amount: getTotalCartAmount(),
+            address: data
         }
 
+        try {
+            if (payment === "cod") {
+                const response = await axios.post(`${url}/api/order/place`, orderData, { headers: { token } });
+                if (response.data.success) {
+                    toast.success("Order placed (COD)");
+                    navigate('/myorders');
+                } else {
+                    toast.error(response.data.message || "Error");
+                }
+            } else if (payment === "razorpay") {
+                const response = await axios.post(`${url}/api/order/place`, orderData, { headers: { token } });
+                if (!response.data.success) return toast.error(response.data.message || "Failed to create order");
+                const { key, razorpayOrderId, amount, orderId } = response.data;
+
+                // Load Razorpay SDK
+                const script = document.createElement('script');
+                script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                script.onload = () => {
+                  const rzp = new window.Razorpay({
+                    key,
+                    amount,
+                    currency: 'INR',
+                    name: 'Quick Bite',
+                    description: 'Order payment',
+                    order_id: razorpayOrderId,
+                    prefill: { email: data.email, contact: data.phone, name: data.firstName + ' ' + data.lastName },
+                    handler: async function (resp) {
+                      const verify = await axios.post(`${url}/api/order/verify`, {
+                        orderId,
+                        razorpay_order_id: resp.razorpay_order_id,
+                        razorpay_payment_id: resp.razorpay_payment_id,
+                        razorpay_signature: resp.razorpay_signature,
+                      });
+                      if (verify.data.success) {
+                        toast.success('Payment success');
+                        navigate('/myorders');
+                      } else {
+                        toast.error('Payment verification failed');
+                      }
+                    },
+                    theme: { color: '#ff4343' }
+                  });
+                  rzp.open();
+                };
+                document.body.appendChild(script);
+            }
+        } catch (err) {
+            toast.error("Error placing order");
+        }
     }
 
     useEffect(() => {
         if (!token) {
-            toast.error("to place an order sign in first")
-            navigate('/cart')
+            toast.warning("Login to place order");
+            navigate('/login');
         }
         else if (getTotalCartAmount() === 0) {
             navigate('/cart')
@@ -84,45 +114,55 @@ const PlaceOrder = () => {
         <form onSubmit={placeOrder} className='place-order'>
             <div className="place-order-left">
                 <p className='title'>Delivery Information</p>
-                <div className="multi-field">
-                    <input type="text" name='firstName' onChange={onChangeHandler} value={data.firstName} placeholder='First name' required />
-                    <input type="text" name='lastName' onChange={onChangeHandler} value={data.lastName} placeholder='Last name' required />
+                <div className="multi-fields">
+                    <input required name='firstName' onChange={onChangeHandler} value={data.firstName} type="text" placeholder='First name' />
+                    <input required name='lastName' onChange={onChangeHandler} value={data.lastName} type="text" placeholder='Last name' />
                 </div>
-                <input type="email" name='email' onChange={onChangeHandler} value={data.email} placeholder='Email address' required />
-                <input type="text" name='street' onChange={onChangeHandler} value={data.street} placeholder='Street' required />
-                <div className="multi-field">
-                    <input type="text" name='city' onChange={onChangeHandler} value={data.city} placeholder='City' required />
-                    <input type="text" name='state' onChange={onChangeHandler} value={data.state} placeholder='State' required />
+                <input required name='email' onChange={onChangeHandler} value={data.email} type="email" placeholder='Email address' />
+                <input required name='street' onChange={onChangeHandler} value={data.street} type="text" placeholder='Street' />
+                <div className="multi-fields">
+                    <input required name='city' onChange={onChangeHandler} value={data.city} type="text" placeholder='City' />
+                    <input required name='state' onChange={onChangeHandler} value={data.state} type="text" placeholder='State' />
                 </div>
-                <div className="multi-field">
-                    <input type="text" name='zipcode' onChange={onChangeHandler} value={data.zipcode} placeholder='Zip code' required />
-                    <input type="text" name='country' onChange={onChangeHandler} value={data.country} placeholder='Country' required />
+                <div className="multi-fields">
+                    <input required name='zipcode' onChange={onChangeHandler} value={data.zipcode} type="text" placeholder='Zip code' />
+                    <input required name='country' onChange={onChangeHandler} value={data.country} type="text" placeholder='Country' />
                 </div>
-                <input type="text" name='phone' onChange={onChangeHandler} value={data.phone} placeholder='Phone' required />
+                <input required name='phone' onChange={onChangeHandler} value={data.phone} type="text" placeholder='Phone' />
             </div>
+
             <div className="place-order-right">
                 <div className="cart-total">
                     <h2>Cart Totals</h2>
                     <div>
-                        <div className="cart-total-details"><p>Subtotal</p><p>{currency}{getTotalCartAmount()}</p></div>
+                        <div className="cart-total-details">
+                            <p>Subtotal</p>
+                            <p>{currency}{getTotalCartAmount()}</p>
+                        </div>
                         <hr />
-                        <div className="cart-total-details"><p>Delivery Fee</p><p>{currency}{getTotalCartAmount() === 0 ? 0 : deliveryCharge}</p></div>
+                        <div className="cart-total-details">
+                            <p>Delivery Fee</p>
+                            <p>{currency}{getTotalCartAmount() === 0 ? 0 : deliveryCharge}</p>
+                        </div>
                         <hr />
-                        <div className="cart-total-details"><b>Total</b><b>{currency}{getTotalCartAmount() === 0 ? 0 : getTotalCartAmount() + deliveryCharge}</b></div>
+                        <div className="cart-total-details">
+                            <b>Total</b>
+                            <b>{currency}{getTotalCartAmount() === 0 ? 0 : getTotalCartAmount() + deliveryCharge}</b>
+                        </div>
                     </div>
+                    <div className="payment-method">
+                        <h3>Payment Method</h3>
+                        <div>
+                            <input type="radio" checked={payment === "cod"} onChange={() => setPayment("cod")} />
+                            <label>Cash on Delivery</label>
+                        </div>
+                        <div>
+                            <input type="radio" checked={payment === "razorpay"} onChange={() => setPayment("razorpay")} />
+                            <label>Razorpay</label>
+                        </div>
+                    </div>
+                    <button type='submit'>Proceed to Payment</button>
                 </div>
-                <div className="payment">
-                    <h2>Payment Method</h2>
-                    <div onClick={() => setPayment("cod")} className="payment-option">
-                        <img src={payment === "cod" ? assets.checked : assets.un_checked} alt="" />
-                        <p>COD ( Cash on delivery )</p>
-                    </div>
-                    <div onClick={() => setPayment("stripe")} className="payment-option">
-                        <img src={payment === "stripe" ? assets.checked : assets.un_checked} alt="" />
-                        <p>Stripe ( Credit / Debit )</p>
-                    </div>
-                </div>
-                <button className='place-order-submit' type='submit'>{payment==="cod"?"Place Order":"Proceed To Payment"}</button>
             </div>
         </form>
     )

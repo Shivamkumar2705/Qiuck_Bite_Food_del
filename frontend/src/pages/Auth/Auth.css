@@ -1,0 +1,37 @@
+.auth-page{max-width:420px;margin:40px auto;padding:24px;background:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.auth-form{display:flex;flex-direction:column;gap:12px}
+.auth-form input{padding:12px;border:1px solid #ddd;border-radius:8px}
+.auth-form button{padding:12px;border:none;border-radius:8px;background:#ff4343;color:#fff;cursor:pointer}
+.auth-links{display:flex;justify-content:space-between;font-size:14px}
+.navbar .auth-buttons button{margin-left:8px}
+.nav-search{display:flex;gap:8px;align-items:center}
+.nav-search input{padding:8px;border:1px solid #ddd;border-radius:8px;min-width:220px}
+
+
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field input {
+  flex: 1;
+  padding-right: 40px;
+}
+
+.password-field .eye {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+@media (max-width:640px){
+  .auth-page{margin:16px;padding:16px}
+  .nav-search input{min-width:140px}
+}
